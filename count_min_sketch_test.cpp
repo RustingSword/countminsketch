@@ -1,7 +1,9 @@
+# include <cassert>
 # include <iostream>
 # include <map>
 # include <cstdlib>
 # include <cmath>
+# include <unordered_map>
 # include "count_min_sketch.hpp"
 using namespace std;
 
@@ -15,7 +17,7 @@ int main(int argc, char **argv) {
     "alice", "in", "wonderland", "us", "lady",
     "lady", "some", "hello", "none", "pie"
   };
-  
+
   CountMinSketch c(0.01, 0.1);
   unsigned int i, total = 0;
   map<const char *, int> mapitems;
@@ -33,19 +35,18 @@ int main(int argc, char **argv) {
 
   // 1. test for items in ar_str
   // note: since probablistic (and not deterministic)
-  // might not be accurate sometimes 
+  // might not be accurate sometimes
   for (it = mapitems.begin(); it != mapitems.end(); it++) {
     if (c.estimate(it->first) != mapitems[it->first]) {
-      cout << "Incorrect count for " << it->first <<
-	";error: " << abs(int(c.estimate(it->first)-mapitems[it->first]))
-	   << endl;
+      cout << "Incorrect count for " << it->first << "; error: "
+           << abs(int(c.estimate(it->first)-mapitems[it->first])) << endl;
     } else {
-      cout << "Correct count for '" << it->first <<
-	"' ;count: " << c.estimate(it->first) << endl;
+      cout << "Correct count for '" << it->first << "'; count: "
+           << c.estimate(it->first) << endl;
     }
   }
-  cout << "c.totalcount()==total? " 
-       << (c.totalcount() == total ? "True" : "False") 
+  cout << "c.totalcount()==total? "
+       << (c.totalcount() == total ? "True" : "False")
        << "Sketch Total: " << c.totalcount() << endl;
 
   // 2. test for items not in ar_str
@@ -53,6 +54,21 @@ int main(int argc, char **argv) {
   cout << c.estimate("blabla") << endl;
   cout << c.estimate("yoyo!") << endl;
 
+  cout << "================ MultiCMS test ================" << endl;
+  MultiCMS multi_cms(5, 300);  // 5 threads to record 5-min interval
+  unordered_map<int, int> ground_truth;
+  for (int i = 0; i < 5; ++i) {
+    for (int j = 0; j < 100; ++j) {
+      int target = rand() % 10;
+      multi_cms.update(i, target);
+      ++ground_truth[target];
+    }
+  }
+
+  for (auto iter = ground_truth.begin(); iter != ground_truth.end(); ++iter) {
+    assert(iter->second == multi_cms.estimate(iter->first));
+    cout << iter->first << " count:" << iter->second << endl;
+  }
   return 0;
 }
 
